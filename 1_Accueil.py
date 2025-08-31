@@ -80,7 +80,7 @@ col_group = 2
 col_date = headers.index(date_jour) + 1
 
 # Chargement du Data Frame
-@st.cache_resource
+@st.cache_resource(ttl=3600)
 def load_csv(path: str, show_spinner=False) -> pd.DataFrame:
     df = pd.read_csv(path)
     return df
