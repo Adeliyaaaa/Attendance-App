@@ -2,12 +2,11 @@ import pandas as pd
 import streamlit as st
 import datetime
 from datetime import date
-import dotenv
-from dotenv import load_dotenv
-import os
 import re
 from pathlib import Path
-
+import os
+import dotenv
+from dotenv import load_dotenv
 import gspread
 from google.oauth2.service_account import Credentials
 from gspread.utils import rowcol_to_a1
@@ -30,21 +29,25 @@ csv_url = f"https://docs.google.com/spreadsheets/d/{sheet_id}/export?format=csv"
 
 # GOOGLE SHEET API 
 # 1. Connexion
-spreadsheet_url = os.getenv('url_google_sheet')
-service_account_file = os.getenv("GOOGLE_SERVICE_ACCOUNT")
-secret_key = os.getenv("SECRET_KEY")
+# 1) Scopes d'accès (Drive + Sheets pour ouvrir par URL)
+SCOPES = [
+    "https://www.googleapis.com/auth/spreadsheets",
+    "https://www.googleapis.com/auth/drive",
+]
 
-# 2. Définir les scopes
-SCOPES = ["https://www.googleapis.com/auth/spreadsheets"]
+# 2) Client gspread à partir de st.secrets
+@st.cache_resource
+def make_gs_client():
+    creds = Credentials.from_service_account_info(
+        st.secrets["gcp_service_account"], scopes=SCOPES
+    )
+    return gspread.authorize(creds)
 
-# 3. Charger le compte de service
-creds = Credentials.from_service_account_file(service_account_file, scopes=SCOPES)
+gc = make_gs_client()
 
-# 4. Connexion à Google Sheets
-gc = gspread.authorize(creds)
+# 3) Ouvrir le Google Sheet
 
-# 5. Ouvrir le Google Sheet depuis l’URL
-sh = gc.open_by_url(spreadsheet_url)
+sh = gc.open_by_url(st.secrets["GOOGLE_SHEET_URL"])
 
 # 6. Choisir un onglet
 ws = sh.sheet1   # ou sh.worksheet Feuille 1")
