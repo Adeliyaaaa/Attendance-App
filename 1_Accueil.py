@@ -18,7 +18,7 @@ load_dotenv()
 # PAGE STREAMLIT 
 st.set_page_config(layout="wide") # vérifier si je peux changer le layout 
 st.session_state["page"] = "Accueil"
-st.logo("0000000006_480x480.webp", size="large")
+st.logo("https://www.capa84.com/wp-content/uploads/2022/07/0000000006_480x480.webp", size="large")
 
 st.title("CAPA84 Avignon")
 st.markdown(f"<h1 class='sub-title'>Ice Time ⛸️</h1>" , unsafe_allow_html=True)
