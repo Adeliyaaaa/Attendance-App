@@ -23,7 +23,8 @@ st.title("CAPA84 Avignon")
 st.markdown(f"<h1 class='sub-title'>Ice Time ⛸️</h1>" , unsafe_allow_html=True)
 
 # Fichier -> Importer -> Importer -> parcourir -> double cliquer sur le nouveau fichier -> Remplacer la feuille de calcul -> Im^porter les données
-sheet_id = os.getenv('sheet_id')
+#sheet_id = os.getenv('sheet_id')
+sheet_id = st.secrets["SHEET_ID"]
 csv_url = f"https://docs.google.com/spreadsheets/d/{sheet_id}/export?format=csv"
 
 
