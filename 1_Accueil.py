@@ -115,8 +115,8 @@ def update_df(df: pd.DataFrame) -> pd.DataFrame:
     df['groupe'] = df["Produits d'adhésion"].apply(groupe_patinage)
     # nom  et prénom de l'adhérent
     df["adherent"] = df["Fiche d'adhésion"].apply(
-        lambda x: (m.group(0).upper().strip() if (m := re.search(r'(?<=fiche validée : ).*?(?= - )', re.sub(r"\s+", " ", x))) else None))
-    
+    lambda x: (m.group(0).upper().strip() if (m := re.search(r'(?<=fiche validee : ).*?(?= - )', re.sub(r"\s+", " ", unidecode(x)))) else None))
+
     df= df[['adherent', 'groupe']].dropna().reset_index().sort_values('groupe')
     df.drop(columns = 'index', inplace = True)
 
