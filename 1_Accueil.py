@@ -78,6 +78,7 @@ st.markdown(f"<h2 class='sub-title'>{date_aujourdhui}</h2>", unsafe_allow_html=T
 col_nom = 1
 col_group = 2
 col_date = headers.index(date_jour) + 1
+test = headers.index(date_jour) + 5
 
 # Chargement du Data Frame
 @st.cache_resource(ttl=3600)
@@ -247,7 +248,7 @@ if choix_groupe != " ":
             else:
                 # Mettre à jour la présence dans la colonne du jour
                 cell = ws.find(personne)
-                #ws.update_cell(cell.row, col_date, "Oui")
+                ws.update_cell(cell.row, col_date, "Oui")
 
         st.markdown("<h3>Enregistré</h3>", unsafe_allow_html=True)
         
