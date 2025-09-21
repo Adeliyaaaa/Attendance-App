@@ -87,6 +87,7 @@ def load_csv(path: str, show_spinner=False) -> pd.DataFrame:
 
 df = load_csv(csv_url)
 
+
 # GROUPE
 def groupe_patinage(val: str) -> str:
     # Cas vides / NaN
@@ -114,23 +115,22 @@ def update_df(df: pd.DataFrame) -> pd.DataFrame:
     df['groupe'] = df["Produits d'adhésion"].apply(groupe_patinage)
     # nom  et prénom de l'adhérent
     df["adherent"] = df["Fiche d'adhésion"].apply(
-        lambda x: (m.group(0).upper().strip() if (m := re.search(r'(?<=fiche validée : ).*?(?= - )', re.sub(r"\s+", " ", unidecode(x)))) else None))
+        lambda x: (m.group(0).upper().strip() if (m := re.search(r'(?<=fiche validée : ).*?(?= - )', re.sub(r"\s+", " ", x))) else None))
     
     df= df[['adherent', 'groupe']].dropna().reset_index().sort_values('groupe')
     df.drop(columns = 'index', inplace = True)
 
     # Renommer les groupes 
     df['groupe'] = df['groupe'].replace({
-        "Loisir Avancé 1h00" : "Loisir Avancé",
-        "Loisir Avancé 1h15" : "Loisir Avancé",
-        "Loisir Avancé 2h15" : "Loisir Avancé",
+        "Loisir Avancé 1h00" : "Loisir Avancé mercredi",
+        "Loisir Avancé 1h15" : "Loisir Avancé samedi",
         'Loisirs débutant et intermédiaire 1h15/semaine lundi' : "Loisirs D&I lundi",
         'Loisirs débutant et intermédiaire 1h15/semaine samedi' : "Loisirs D&I samedi",
         'Loisirs débutant et intermédiaire 2h30/semaine' : "Loisirs D&I 2h30/semaine",
         'Initiation 1h/semaine mardi' : "Initiation mardi",
         'Initiation 1h/semaine samedi' : "Initiation samedi"})
     
-    df_partiel_1 = df[(df['groupe'] == "2 cours d'essais") 
+    df_partiel_1 = df[(df['groupe'] == "2 cours d'essais")
                   | (df['groupe'] == 'Adulte Compétition')
                   | (df['groupe'] == 'Basic Ice')
                   | (df['groupe'] == 'Compétition 1')
@@ -143,12 +143,13 @@ def update_df(df: pd.DataFrame) -> pd.DataFrame:
                   | (df['groupe'] == 'Loisir Avancé')
                   | (df['groupe'] == 'Loisirs D&I lundi')
                   | (df['groupe'] == 'Loisirs D&I samedi')
+                  | (df['groupe'] == 'Loisir Avancé mercredi')
+                  | (df['groupe'] == 'Loisir Avancé samedi')
                   ]
     df_partiel_1 = df_partiel_1.dropna(subset='adherent')
 
     df_partiel_2 = df[df['groupe'] == 'Initiation 2h/semaine']
     df_partiel_2 = df_partiel_2.dropna(subset='adherent')
-
     # On duplique en deux groupes : 
     # "Initiation mardi","Initiation samedi",
     df_initiation_mardi = df_partiel_2.copy()
@@ -158,26 +159,33 @@ def update_df(df: pd.DataFrame) -> pd.DataFrame:
     
     df_partiel_3 = df[df['groupe'] == 'Loisirs D&I 2h30/semaine']
     df_partiel_3 = df_partiel_3.dropna(subset='adherent')
-
     # On duplique en deux groupes : 
     # Loisirs D&I lundi , Loisirs D&I samedi
-
     df_loisirs_lundi = df_partiel_3.copy()
     df_loisirs_lundi["groupe"] = 'Loisirs D&I lundi'
-
     df_loisirs__samedi = df_partiel_3.copy()
     df_loisirs__samedi["groupe"] = 'Loisirs D&I samedi'
 
-    df_final = pd.concat([df_partiel_1, df_initiation_mardi, df_initiation_samedi, df_loisirs_lundi, df_loisirs__samedi]).reset_index().drop(columns='index')
+    df_partiel_4 = df[df['groupe'] == "Loisir Avancé 2h15"]
+    df_partiel_4 = df_partiel_4.dropna(subset='adherent')
+    # On duplique en deux groupes : 
+    # 'Loisir Avancé mercredi', 'Loisir Avancé samedi'
+    df_loisirs_a_mercredi = df_partiel_4.copy()
+    df_loisirs_a_mercredi["groupe"] = 'Loisir Avancé mercredi'
+    df_loisirs_a_samedi = df_partiel_4.copy()
+    df_loisirs_a_samedi["groupe"] = 'Loisir Avancé samedi'
+
+    df_final = pd.concat([df_partiel_1, df_initiation_mardi, df_initiation_samedi, 
+                          df_loisirs_lundi, df_loisirs__samedi, df_loisirs_a_mercredi, df_loisirs_a_samedi]).reset_index().drop(columns='index')
     
     if df_final["groupe"].dtype != "category":
         df_final["groupe"] = df_final["groupe"].astype("category")
     if df_final["adherent"].dtype != "category":
         df_final["adherent"] = df_final["adherent"].astype("category")
+    
     return df_final
 
 df_updated = update_df(df)
-
 
 @st.cache_data(ttl=900, show_spinner=False) 
 def get_group_list(df: pd.DataFrame) -> list:
