@@ -116,7 +116,7 @@ def update_df(df: pd.DataFrame) -> pd.DataFrame:
     df["adherent"] = df["Fiche d'adhésion"].apply(
         lambda x: (m.group(0).upper().strip() if (m := re.search(r'(?<=fiche validée : ).*?(?= - )', re.sub(r"\s+", " ", unidecode(x)))) else None))
     
-    df= df_final[['adherent', 'groupe']].dropna().reset_index().sort_values('groupe')
+    df= df[['adherent', 'groupe']].dropna().reset_index().sort_values('groupe')
     df.drop(columns = 'index', inplace = True)
 
     # Renommer les groupes 
