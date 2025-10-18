@@ -23,63 +23,12 @@ st.title("CAPA84 Avignon")
 st.markdown(f"<h1 class='sub-title'>Ice Time ⛸️</h1>" , unsafe_allow_html=True)
 
 # Fichier -> Importer -> Importer -> parcourir -> double cliquer sur le nouveau fichier -> Remplacer la feuille de calcul -> Im^porter les données
-
+# Lecture fichier csv capa84
 sheet_id = st.secrets["SHEET_ID"]
 csv_url = f"https://docs.google.com/spreadsheets/d/{sheet_id}/export?format=csv"
 
 
-# GOOGLE SHEET API 
-# 1. Connexion
-# 1) Scopes d'accès (Drive + Sheets pour ouvrir par URL)
-SCOPES = [
-    "https://www.googleapis.com/auth/spreadsheets",
-    "https://www.googleapis.com/auth/drive",
-]
-
-# 2) Client gspread à partir de st.secrets
-@st.cache_resource
-def make_gs_client():
-    creds = Credentials.from_service_account_info(
-        st.secrets["gcp_service_account"], scopes=SCOPES
-    )
-    return gspread.authorize(creds)
-
-gc = make_gs_client()
-
-# 3) Ouvrir le Google Sheet
-
-sh = gc.open_by_url(st.secrets["GOOGLE_SHEET_URL"])
-
-# 6. Choisir un onglet
-ws = sh.sheet1   # ou sh.worksheet Feuille 1")
-
-# 7. Colonnes dans Google Sheets
-headers = ws.row_values(1)  # toujours une liste de strings
-
-# Rajouter la colonne date d'aujourd'hui 
-current_date = date.today()
-date_jour = date.today().strftime("%d/%m/%Y")
-
-if date_jour not in headers:
-    ws.update_cell(1, len(headers) + 1, date_jour)
-    headers.append(date_jour)
-
-if date_jour not in headers:
-    # Ajouter une nouvelle colonne à la fin avec le nom current_date
-    ws.update_cell(1, len(headers) + 1, date_jour)
-
-jours = ["lundi", "mardi", "mercredi", "jeudi", "vendredi", "samedi", "dimanche"]
-jour_semaine = jours[current_date.weekday()]  # lundi=0 ... dimanche=6
-date_aujourdhui = f"{jour_semaine} {current_date.strftime('%d/%m/%Y')}"
-
-st.markdown(f"<h2 class='sub-title'>{date_aujourdhui}</h2>", unsafe_allow_html=True)
-
-# 9. Colonnes sur google sheet 
-col_nom = 1
-col_group = 2
-col_date = headers.index(date_jour) + 1
-test = headers.index(date_jour) + 5
-
+# DATA FRAME 
 # Chargement du Data Frame
 @st.cache_resource(ttl=3600)
 def load_csv(path: str, show_spinner=False) -> pd.DataFrame:
@@ -87,7 +36,6 @@ def load_csv(path: str, show_spinner=False) -> pd.DataFrame:
     return df
 
 df = load_csv(csv_url)
-
 
 # GROUPE
 def groupe_patinage(val: str) -> str:
@@ -188,6 +136,100 @@ def update_df(df: pd.DataFrame) -> pd.DataFrame:
 
 df_updated = update_df(df)
 
+
+# GOOGLE SHEET API 
+# 1. Connexion
+# 1) Scopes d'accès (Drive + Sheets pour ouvrir par URL)
+SCOPES = [
+    "https://www.googleapis.com/auth/spreadsheets",
+    "https://www.googleapis.com/auth/drive",
+]
+
+# 2) Client gspread à partir de st.secrets
+@st.cache_resource
+def make_gs_client():
+    creds = Credentials.from_service_account_info(
+        st.secrets["gcp_service_account"], scopes=SCOPES
+    )
+    return gspread.authorize(creds)
+
+gc = make_gs_client()
+
+# 3) Ouvrir le Google Sheet
+
+sh = gc.open_by_url(st.secrets["GOOGLE_SHEET_URL"])
+
+# 6. Choisir un onglet
+ws = sh.sheet1   # ou sh.worksheet Feuille 1")
+
+# 7. Colonnes dans Google Sheets
+
+def get_headers(ws):
+    # headers normalisés (strip)
+    return [str(h).strip() for h in ws.row_values(1)]
+#headers = ws.row_values(1)
+headers = get_headers(ws)
+
+
+# Rajouter la colonne date d'aujourd'hui 
+current_date = date.today()
+date_jour = date.today().strftime("%d/%m/%Y") # Date au format fr
+
+if date_jour not in headers:
+    ws.update_cell(1, len(headers) + 1, date_jour)
+    headers.append(date_jour)
+
+if date_jour not in headers:
+    # Ajouter une nouvelle colonne à la fin avec le nom current_date
+    ws.add_cols(1)
+    #ws.update_cell(1, len(headers) + 1, date_jour)
+    next_col = len(ws.row_values(1)) + 1
+    ws.update_cell(1, next_col, date_jour)
+
+
+jours = ["lundi", "mardi", "mercredi", "jeudi", "vendredi", "samedi", "dimanche"]
+jour_semaine = jours[current_date.weekday()]  # lundi=0 ... dimanche=6
+date_aujourdhui = f"{jour_semaine} {current_date.strftime('%d/%m/%Y')}"
+
+# Afficher la date d'aujourd'hui sur l'appli
+st.markdown(f"<h2 class='sub-title'>Nous sommes le {date_aujourdhui}</h2>", unsafe_allow_html=True)
+
+# Sélecteur une autre date : 
+choix_date = st.date_input("Séléctionnez une autre date dans le calendrier", value=current_date, format="DD/MM/YYYY")
+choix_date_str = choix_date.strftime("%d/%m/%Y")
+insert_new_date_index = None
+
+if choix_date_str not in headers: 
+    # Trouver la bonne position pour insérer choix_date
+    header_dates = []
+    for i in range(2, len(headers)): 
+        header_dates.append(datetime.datetime.strptime(headers[i], "%d/%m/%Y"))
+
+    for idx, d in enumerate(header_dates): 
+        if choix_date < d.date():
+            insert_new_date_index = idx + 2  # on insère avant cette colonne
+            break
+
+    if insert_new_date_index is not None:
+        ws.spreadsheet.batch_update({
+        "requests": [{
+            "insertDimension": {
+                "range": {
+                    "sheetId": 0,
+                    "dimension": "COLUMNS",
+                    "startIndex": insert_new_date_index,
+                    "endIndex": insert_new_date_index + 1
+                },
+                "inheritFromBefore": True}}]})
+        ws.update_cell(1, insert_new_date_index + 1, choix_date.strftime("%d/%m/%Y")) # 1 = première ligne (en tête)
+
+# Colonnes sur google sheet 
+headers = get_headers(ws)
+col_nom = 1
+col_group = 2
+col_date = headers.index(date_jour) + 1
+col_another_date = headers.index(choix_date_str) + 1
+
 @st.cache_data(ttl=900, show_spinner=False) 
 def get_group_list(df: pd.DataFrame) -> list:
     groupes = df_updated["groupe"].astype(str).sort_values().unique().tolist()
@@ -247,8 +289,10 @@ if choix_groupe != " ":
                 ws.append_row(new_row, value_input_option="USER_ENTERED")
             else:
                 # Mettre à jour la présence dans la colonne du jour
-                cell = ws.find(personne)
-                ws.update_cell(cell.row, col_date, "Oui")
+                cell = ws.find(personne, in_column=col_nom)
+                if current_date != choix_date: 
+                    ws.update_cell(cell.row, col_another_date, "Oui")
+                else: 
+                    ws.update_cell(cell.row, col_date, "Oui") # col_date = index
 
         st.markdown("<h3>Enregistré</h3>", unsafe_allow_html=True)
-        
