@@ -176,16 +176,10 @@ current_date = date.today()
 date_jour = date.today().strftime("%d/%m/%Y") # Date au format fr
 
 if date_jour not in headers:
-    ws.update_cell(1, len(headers) + 1, date_jour)
-    headers.append(date_jour)
-
-if date_jour not in headers:
     # Ajouter une nouvelle colonne à la fin avec le nom current_date
     ws.add_cols(1)
-    #ws.update_cell(1, len(headers) + 1, date_jour)
-    next_col = len(ws.row_values(1)) + 1
-    ws.update_cell(1, next_col, date_jour)
-
+    ws.update_cell(1, len(headers) + 1, date_jour)
+    headers.append(date_jour)
 
 jours = ["lundi", "mardi", "mercredi", "jeudi", "vendredi", "samedi", "dimanche"]
 jour_semaine = jours[current_date.weekday()]  # lundi=0 ... dimanche=6
